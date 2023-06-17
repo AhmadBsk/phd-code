@@ -1,0 +1,101 @@
+*author: AhmadReza Boskabadi*
+*date:   17 Jun 2023*
+*Email:  ahmadreza.boskabadi@gmail.com*
+
+# trend and detrend
+```
+
+library(sp)
+library(ggplot2)
+library(scatterplot3d)
+library(reshape2)
+library(rgl)
+library(plot3D)
+
+
+## Create a model
+### model.3D
+x <- y <- z <- seq(1, 20, length.out = 20)
+xyz <- mesh(x, y, z)
+F <- with(xyz, log(x^2 + y^2 + z^2 +10*(x^2 + y^2) * (y^2 + z^2) ^2))
+model.3D=melt(F)
+names(model.3D) = c("x","y","z","value")
+
+open3d()
+plot3d(model.3D$x,model.3D$y,model.3D$z,
+       col=model.3D$value,xlab ="x",ylab ="y",zlab ="z",size = 10)
+
+levelplot(value ~ x + y | z, as.data.frame(model.3D))
+### model.2D
+model.2D=model.3D[model.3D$z == 1,] #level.one.model
+
+ggplot(model.2D,aes(x=x,y=y,fill=value))+
+  geom_tile()+
+  scale_fill_gradient(low = "blue", high = "orange")+
+  labs(title="2D Image Top of Model",x="x",y="y",fill="value")+
+  xlim(c(0,20))+
+  ylim(c(0,20))
+
+## drilling holes
+### holes.3D
+BH=10 ##borehole.numbers
+x <-round(runif(BH,1,20))
+y <-round(runif(BH,1,20))
+holes.loc=cbind(x,y)
+
+holes.3D = data.frame(x=NULL, y=NULL, z=NULL,value=NULL)
+for(j in 1:BH){
+  x <-holes.loc[j,1]
+  y <-holes.loc[j,2]
+  new.holes.data=model.3D[model.3D$x == x & model.3D$y == y,]
+  holes.3D <- rbind(holes.3D,new.holes.data)
+}
+
+open3d()
+plot3d(holes.3D$x,holes.3D$y,holes.3D$z,
+       col=holes.3D$value,xlab ="x",ylab ="y",zlab ="z",size = 10)
+
+### holes.2D
+holes.2D=holes.3D[holes.3D$z == 1,] #level.one.model
+
+plot(y~x, data =holes.2D,pch=10,
+     main = "Borehole",ylab = "y", xlab = "x",
+     ylim=c(0,20), xlim=c(0,20))
+text(holes.2D,labels=signif(holes.2D$value, digits = 4),
+     cex=0.7, pos=3, col="blue")
+grid()
+
+## made recovered and missing holes.3D
+k = 10
+holes.3D$id <- sample(1:k, nrow(holes.3D), replace = TRUE)
+list <- 1:k
+i=4
+r.holes.3D <- subset(holes.3D, id %in% list[-i]) #recovered.holes.data
+m.holes.3D <- subset(holes.3D, id %in% c(i))# missing.holes.data
+
+open3d()
+plot3d(r.holes.3D$x,r.holes.3D$y,r.holes.3D$z,
+       col=r.holes.3D$value,xlab ="x",ylab ="y",zlab ="z",size = 10)
+
+d <- r.holes.3D
+
+# # deTrend
+trend <- lm(value ~ x + y + z , data=d)
+dt.var <-d$value - fitted(trend)
+d <- cbind(d,dt.var)
+
+dt <-resid(trend)
+
+# setwd("C:/Users/ACER/Desktop/cupper data/1401-06-31/SamiroumGeochemistry-6352/test")
+# save(model.3D,file="model.3D.Rda") #3D Model
+# save(holes.2D,file="holes.2D.Rda") #2D holes loc and var
+# save(r.holes.3D,file="r.holes.3D.Rda") #3D holes recovery data 
+# load("o.Rda")
+```{r}
+
+
+
+author: AhmadReza Boskabadi
+date:   17 Jun 2023
+Email:  ahmadreza.boskabadi@gmail.com
+
